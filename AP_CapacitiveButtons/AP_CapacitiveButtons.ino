@@ -9,20 +9,28 @@
 // We have a matrix of four buttons, two lines are 'driver' lines connected to outputs,
 // the other two are input lines.
 
-//const int OUT_PIN = A2;
+// Set to true to enable printing
+const bool printIt = false;
+
+// Pin mappings
 const int OUT1 = 2;
 const int OUT2 = 3;
 const int IN1 = A0;
 const int IN2 = A1;
+const int led = LED_BUILTIN;
 
-// The values are from the source, I did not bother to check correctness for raspberry pi pico.
+// Constants used in the calculation of the capacitance.
+const int LOW_CAPACITANCE_THRESHOLD = 1000;
 const float IN_STRAY_CAP_TO_GND = 24.48;
 const float IN_CAP_TO_GND  = IN_STRAY_CAP_TO_GND;
 const float R_PULLUP = 34.8;
-const int MAX_ADC_VALUE = 1023;
+const int MAX_ADC_VALUE = 4096;
 
-const int led = 25; // led is connected to this pin
-
+// Variable declarations
+float val11, val21, val12, val22; // Current values row/column
+float avg11, avg21, avg12, avg22; // Averages
+float expFactor = 0.01; // expFactortor for exponential average filter
+float threshold = 1.0; // If the current value is above average + threshold we think a button is pushed.
 
 void setup()
 {
@@ -32,24 +40,81 @@ void setup()
   pinMode(IN2, OUTPUT); // !!
   pinMode(led, OUTPUT);
   Serial.begin(115200);
-}
 
-float val11, val21, val12, val22; // Current values row/column
-float avg11, avg21, avg12, avg22; // Averages
-float fac = 0.01; // Factor for exponential average filter
-float trigger = 10.0; // If the current value is above average+trigger we think a button is pushed.
+  // Permeate the circuit with a longer pulse - just a one time thing
+  calibrate();
+
+  // Get the initial measurement after calibration
+  avg11 = measureCap(IN1, OUT1);
+  avg12 = measureCap(IN1, OUT2);
+  avg21 = measureCap(IN2, OUT1);
+  avg22 = measureCap(IN2, OUT2);
+}
 
 void loop()
 {
-  val11 = measureCap(IN1, OUT1, 0);
-  avg11 = (1.0 - fac) * avg11 + fac * val11;
-  val12 = measureCap(IN1, OUT2, 0);
-  avg12 = (1.0 - fac) * avg12 + fac * val12;
-  val21 = measureCap(IN2, OUT1, 0);
-  avg21 = (1.0 - fac) * avg21 + fac * val21;
-  val22 = measureCap(IN2, OUT2, 0);
-  avg22 = (1.0 - fac) * avg22 + fac * val22;
+  // Get the capacitance for all 4 buttons
+  val11 = measureCap(IN1, OUT1);
+  val12 = measureCap(IN1, OUT2);
+  val21 = measureCap(IN2, OUT1);
+  val22 = measureCap(IN2, OUT2);
 
+  // Calculate the filtered values for the capacitances for each button
+  avg11 = exponentialAverageFilter(avg11, val11);
+  avg12 = exponentialAverageFilter(avg12, val12);
+  avg21 = exponentialAverageFilter(avg21, val21);
+  avg22 = exponentialAverageFilter(avg22, val22);
+
+  // Send to serial - for plotter
+  plotValues();
+
+  // Here we do something useful with the information we have collected - place to innovate!
+  if (val11 > (avg11 + threshold)) {
+    digitalWrite(led, HIGH);
+  }
+
+  if (val21 > (avg21 + threshold)) {
+    digitalWrite(led, LOW);
+  }
+}
+
+void calibrate()
+{
+  int count = 0;
+  digitalWrite(OUT1, HIGH);
+  digitalWrite(OUT2, HIGH);
+  
+  while (count++ < 20) {
+    digitalWrite(led, HIGH);
+    delay(200);
+    digitalWrite(led, LOW);
+    delay(200);
+  }
+  
+  digitalWrite(OUT1, LOW);
+  digitalWrite(OUT2, LOW);
+}
+
+/*
+ * exponentialAverageFilter() - A very basic exponential filtering algorithm
+ *
+ * prevVal: The previous value of the filtered signal
+ * nextVal: The next value that has to be filtered and put
+ *
+ * Returns: The filtered output
+ */
+static inline float exponentialAverageFilter(float prevVal, float nextVal)
+{
+  return (1.0 - expFactor) * prevVal + expFactor * nextVal;
+}
+
+/*
+ * plotValues() - Helper function to plot the values in SerialPlotter tool
+ *
+ * Returns: None
+ */
+void plotValues()
+{
   // Print results, add offsets for visyalisation in serial plotter
   Serial.print(avg11);
   Serial.print(" ");
@@ -68,37 +133,41 @@ void loop()
   Serial.print(val22 + 6);
   Serial.print(" ");
   Serial.println();
-
-  // Here we do something usefull with the information we have collected.
-  if (val11 > (avg11 + trigger)) {
-    digitalWrite(led, HIGH);
-  }
-
-  if (val21 > (avg21 + trigger)) {
-    digitalWrite(led, LOW);
-  }
 }
 
+/*
+ * measureCap() - Function to measure the capacitance of between the
+ *                two pins specified in the parameters.
+ *
+ * inputPin: The pin where the input probe is attached
+ * outputPin: The pin where the output probe is attached
+ *
+ * Returns: The capacitance value between the pins
+ */
+float measureCap(int inputPin, int outputPin)
+{
+  float capacitance = 0.0f;
 
-// From the original source, 'large capacitor'function commented out.
-float measureCap(int IN_PIN, int OUT_PIN, bool printIt) {
-  float capacitance;
   if (printIt) {
     Serial.print(F("Measure between "));
-    Serial.print(IN_PIN);
+    Serial.print(inputPin);
     Serial.print(F(" and "));
-    Serial.print(OUT_PIN);
+    Serial.print(outputPin);
   }
 
-  pinMode(IN_PIN, INPUT);
-  digitalWrite(OUT_PIN, HIGH);
-  int val = analogRead(IN_PIN);
-  digitalWrite(OUT_PIN, LOW);
+  // Monitor the input pin
+  pinMode(inputPin, INPUT);
+  
+  // Send a momentary pulse and measure the change in value
+  digitalWrite(outputPin, HIGH);
+  int val = analogRead(inputPin);
+  digitalWrite(outputPin, LOW);
 
-  if (val < 1000) {
-    pinMode(IN_PIN, OUTPUT);
+  // Check if the reading is less than the constant, calculate the actual value
+  if (val < LOW_CAPACITANCE_THRESHOLD) {
+    pinMode(inputPin, OUTPUT);
 
-    capacitance = (float)val * IN_CAP_TO_GND / (float)(MAX_ADC_VALUE - val);
+    capacitance = (float) val * IN_CAP_TO_GND / (float) (MAX_ADC_VALUE - val);
 
     if (printIt) {
       Serial.print(F(", Capacitance Value = "));
@@ -109,50 +178,7 @@ float measureCap(int IN_PIN, int OUT_PIN, bool printIt) {
     }
   }
 
-  //  else { // Only in the case of larger capacitances.
-  //    Serial.print(F(", Large "));
-  //    pinMode(IN_PIN, OUTPUT);
-  //    delay(1);
-  //    pinMode(OUT_PIN, INPUT_PULLUP);
-  //    unsigned long u1 = micros();
-  //    unsigned long t;
-  //    int digVal;
-  //
-  //    do {
-  //      digVal = digitalRead(OUT_PIN);
-  //      unsigned long u2 = micros();
-  //      t = u2 > u1 ? u2 - u1 : u1 - u2;
-  //    } while ((digVal < 1) && (t < 400000L));
-  //
-  //    pinMode(OUT_PIN, INPUT);
-  //    val = analogRead(OUT_PIN);
-  //    digitalWrite(IN_PIN, HIGH);
-  //    int dischargeTime = (int)(t / 1000L) * 5;
-  //    delay(dischargeTime);
-  //    pinMode(OUT_PIN, OUTPUT);
-  //    digitalWrite(OUT_PIN, LOW);
-  //    digitalWrite(IN_PIN, LOW);
-  //
-  //    capacitance = -(float)t / R_PULLUP
-  //                  / log(1.0 - (float)val / (float)MAX_ADC_VALUE);
-  //
-  //    Serial.print(F("Capacitance Value = "));
-  //    if (capacitance > 1000.0) {
-  //      Serial.print(capacitance / 1000.0, 2);
-  //      Serial.print(F(" uF"));
-  //    } else {
-  //      Serial.print(capacitance, 2);
-  //      Serial.print(F(" nF"));
-  //    }
-  //
-  //    Serial.print(F(" ("));
-  //    Serial.print(digVal == 1 ? F("Normal") : F("HighVal"));
-  //    Serial.print(F(", t= "));
-  //    Serial.print(t);
-  //    Serial.print(F(" us, ADC= "));
-  //    Serial.print(val);
-  //    Serial.println(F(")"));
-  //  }
+
 
   while (millis() % 100 != 0);
   return capacitance;
