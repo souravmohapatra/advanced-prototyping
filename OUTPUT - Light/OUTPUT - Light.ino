@@ -23,7 +23,7 @@ byte Bshift = 0;
 int colors[NEONUM][3];
 unsigned long C = 0; // Color for NeoPixels (combined RGB)
 const int delayTime = 30; // delay between steps (milliseconds)
-const int maxBrightness = 50;
+const int maxBrightness = 255;
 
 void setup() {
   // Initialize all pixels to 'off'

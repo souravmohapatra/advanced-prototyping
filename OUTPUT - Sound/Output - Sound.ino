@@ -2,7 +2,7 @@
 // (should also test the Arduin tone() library
 
 /*macro definition of Speaker pin*/
-#define SPEAKER 6
+#define SPEAKER 8
 
 int toneList[] = {1911, 1702, 1516, 1431, 1275, 1136, 1012, 902, 803}; //bass 1~7
 int toneTime = 200; // how long to sustain the note
@@ -35,5 +35,7 @@ void sound(uint8_t note_index) {
     delayMicroseconds(toneList[note_index]);
     digitalWrite(SPEAKER, LOW);
     delayMicroseconds(toneList[note_index]);
+
+    
   }
 }
