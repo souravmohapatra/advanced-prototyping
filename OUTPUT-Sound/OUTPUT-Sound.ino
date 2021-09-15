@@ -35,7 +35,8 @@ void sound(uint8_t note_index) {
     delayMicroseconds(toneList[note_index]);
     digitalWrite(SPEAKER, LOW);
     delayMicroseconds(toneList[note_index]);
-
-    
   }
+  
+  // Turn the data pin to high to reduce noise
+  digitalWrite(SPEAKER, HIGH);
 }
