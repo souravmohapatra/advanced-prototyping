@@ -1,7 +1,6 @@
 #include <Adafruit_NeoPixel.h>
 #define NEOPIN 6 // Neopixel data pin
-#define NEONUM 12 // How many pixels we have?
-#define SPEAKER 8 // Need the speaker pin to disable the noise
+#define NEONUM 5 // How many pixels we have?
 
 //See https://adafruit.github.io/Adafruit_NeoPixel/html/class_adafruit___neo_pixel.html
 
@@ -27,14 +26,14 @@ const int delayTime = 30; // delay between steps (milliseconds)
 const int maxBrightness = 255;
 
 void setup() {
-  // Even when we do not use speaker, put a HIGH to disable the noise.
-  pinMode(SPEAKER, OUTPUT);
-  digitalWrite(SPEAKER, HIGH);
-  
+  const int speakerPin = 8; // We don't use the speaker, but use it to disable the distorted
+  pinMode(speakerPin, OUTPUT);
+  digitalWrite(speakerPin, HIGH);
+
   // Initialize all pixels to 'off'
   pixels.begin();
   pixels.show();
-  Serial.begin(9600);
+  Serial.begin(115200);
   pixels.setBrightness(maxBrightness);
   Serial.println("testFader Works (almost)");
   testFader();
