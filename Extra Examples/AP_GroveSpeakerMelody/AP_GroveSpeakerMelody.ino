@@ -28,7 +28,7 @@ int noteDurations[] = {
   4, 8, 8, 4, 4, 4, 4, 4, 4
 };
 
-const int tonePin = 6;
+const int tonePin = 8;
 void setup() {
   int numberOfNotes = sizeof(melody) / sizeof(melody[0]);
 
@@ -45,6 +45,9 @@ void setup() {
     // stop the tone playing:
     noTone(tonePin);
   }
+  
+  pinMode(tonePin, OUTPUT);
+  digitalWrite(tonePin, HIGH);
 }
 
 void loop() {
