@@ -19,7 +19,7 @@ const int IN2 = A1;
 const float IN_STRAY_CAP_TO_GND = 24.48;
 const float IN_CAP_TO_GND  = IN_STRAY_CAP_TO_GND;
 const float R_PULLUP = 34.8;
-const int MAX_ADC_VALUE = 4096;
+const int MAX_ADC_VALUE = 4095;
 
 const int led = 25; // led is connected to this pin
 
