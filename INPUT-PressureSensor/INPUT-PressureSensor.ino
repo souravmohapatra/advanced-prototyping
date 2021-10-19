@@ -19,7 +19,7 @@ const int IN2 = A1;
 const float IN_STRAY_CAP_TO_GND = 24.48;
 const float IN_CAP_TO_GND  = IN_STRAY_CAP_TO_GND;
 const float R_PULLUP = 34.8;
-const int MAX_ADC_VALUE = 1023;
+const int MAX_ADC_VALUE = 4096;
 
 const int led = 25; // led is connected to this pin
 
@@ -95,7 +95,7 @@ float measureCap(int IN_PIN, int OUT_PIN, bool printIt) {
   int val = analogRead(IN_PIN);
   digitalWrite(OUT_PIN, LOW);
 
-  if (val < 1000) {
+  if (val < MAX_ADC_VALUE) {
     pinMode(IN_PIN, OUTPUT);
 
     capacitance = (float)val * IN_CAP_TO_GND / (float)(MAX_ADC_VALUE - val);
