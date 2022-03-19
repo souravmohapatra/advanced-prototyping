@@ -1,4 +1,5 @@
 unsigned long timeOut;
+#define TIMEOUT_CONST 1000
 
 // The logic in the state machine. Try to understand
 // the logic. It will help you perform more complicated
@@ -6,15 +7,15 @@ unsigned long timeOut;
 void stateMachine() {
   switch (mState) {
     case idle:
-      if (touchDetect(0)) {
+      if (boolResult[0]) {
         Serial.println("idle touchA0"); //
-        timeOut = millis() + 500;
+        timeOut = millis() + TIMEOUT_CONST;
         mState = touchedA0;
         upDown = up;
       }
-      if (touchDetect(2)) {
+      if (boolResult[2]) {
         Serial.println("idle touchA2"); //
-        timeOut = millis() + 500;
+        timeOut = millis() + TIMEOUT_CONST;
         mState = touchedA2;
         upDown = down;
       }
@@ -27,9 +28,9 @@ void stateMachine() {
         upDown = undefined;
       }
 
-      if (touchDetect(1)) {
+      if (boolResult[1]) {
         Serial.println("touchedA0 touchA1"); //
-        timeOut = millis() + 500;
+        timeOut = millis() + TIMEOUT_CONST;
         mState = touchedA1;
       }
       break;
@@ -40,12 +41,12 @@ void stateMachine() {
         mState = idle;
         break;
       }
-      if (upDown == up && touchDetect(2)) {
+      if (upDown == up && boolResult[2]) {
         Serial.println("touchedA1 touchA2, swipe UP"); //
         mState = swipeUp;
       }
 
-      if (upDown == down && touchDetect(0)) {
+      if (upDown == down && boolResult[0]) {
         Serial.println("touchedA1 touchA0, swipe DOWN"); //
         mState = swipeDown;
       }
@@ -59,9 +60,9 @@ void stateMachine() {
         break;
       }
 
-      if (touchDetect(1)) {
+      if (boolResult[1]) {
         Serial.println("touchedA2 touchA1"); //
-        timeOut = millis() + 500;
+        timeOut = millis() + TIMEOUT_CONST;
         mState = touchedA1;
         break;
       }

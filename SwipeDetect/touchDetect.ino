@@ -3,9 +3,10 @@
 
 bool touchDetect(int num) {
   // Debug?
-  bool DBG = false;
+  bool DBG = true;
+  boolResult[num] = 0;
   
-  // Some special Adrie-Magic to make the input more stable
+  // Some special magic to make the input more stable
   pinMode(pin[num], INPUT);
   int val = analogRead(pin[num]);
   pinMode(pin[num], OUTPUT);
@@ -16,28 +17,22 @@ bool touchDetect(int num) {
     shortAvg[num] = (1.0 - shortF) * shortAvg[num] + shortF * val;
 
   float diff = abs(longAvg[num] - shortAvg[num]);
+  if (diff < 80.0)
+    diff = 50.0;
 
-  
-  if (DBG) {
-    Serial.print(diff);
-    Serial.print(" ");
-  }
+  result[num] = diff;
 
   // If greater than a trigger, turn on the LED and return true
   // else false
-  if (abs(longAvg[num] - shortAvg[num]) > trigger) {
+  if (diff > trigger) {
     digitalWrite(led, HIGH);
-    if (DBG) {
-      Serial.print(trigger * 2);
-      Serial.print(" ");
-    }
+    boolResult[num] = 1;
     return true;
   } else {
     digitalWrite(led, LOW);
-    if (DBG) {
-      Serial.print(trigger);
-      Serial.print(" ");
-    }
+    boolResult[num] = 0;
     return false;
   }
+  
+  return false;
 }
