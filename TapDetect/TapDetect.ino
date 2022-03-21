@@ -26,32 +26,35 @@ enum states {
   touchedA0, 
   touchedA1, 
   touchedA2, 
-  swipeUp, 
-  swipeDown
+  tappedLeft, 
+  tappedCenter,
+  tappedRight
 } mState;
 
 /* For the state machine */
-enum direct {
+enum tap_direct {
   undefined, 
-  up, 
-  down
-} upDown;
+  left, 
+  center,
+  right
+} tap;
 
 
 float longAvg[3], shortAvg[3];
 int pin[] = {A2, A1, A0};
 int result[] = {0,0,0};
 int boolResult[] = {0,0,0};
+int tapCount[] = {0, 0, 0};
 long int count = 0;
 short unsigned int upCount = 0, downCount = 0;
 short unsigned int upTime = 0, downTime = 0;
 bool ledGlowed = false;
 
 // This is the trigger. Change it according to your environment
-float trigger = 80.0;
+float trigger = 100.0;
 
 float longF = 0.001; // INCREASE or DECREASE when needed
-float shortF = 0.04; // INCREASE or DECREASE when needed
+float shortF = 0.1; // INCREASE or DECREASE when needed
 
 // Start with a value of true to just plot values. Then change to
 // false to start the swipe detection
@@ -76,78 +79,28 @@ void loop()
 
   Serial.print(result[0]); Serial.print(" ");
   Serial.print(result[1]); Serial.print(" ");
-  Serial.print(result[2]); Serial.println(" ");
+  Serial.print(result[2]); Serial.print(" ");
+
+  Serial.print("\t\t"); Serial.print(tapCount[0]);
+  Serial.print(" "); Serial.print(tapCount[1]);
+  Serial.print(" "); Serial.println(tapCount[2]);
 
   if (!isTestCode)
     stateMachine();
 
-  if (mState == swipeUp) {
-    upCount++;
-    upTime = millis();
-  }
-  
-  if (mState == swipeDown) {
-    downCount++;
-    downTime = millis();
-  }
-
-  if (upCount == 1 && downCount == 1) {
-    glowLED(255, 92, 245);
-    upCount = 0;
-    downCount = 0;
-  }
-  
-  if (upCount == 3) {
-    glowLED(0, 255, 255);
-    upCount = 0;
-  }
-
-  if (downCount == 3) {
-    glowLED(255, 255, 0);
-    downCount = 0;
-  }
-
-  if (millis() - upTime > 10000)
-    upCount = 0;
-
-  if (millis() - downTime > 10000)
-    downCount = 0;
-
-  if (ledGlowed) {
-    reset();
-    mState = idle;
-    _stall();
-    return;
-  }
-
-  // If the state ends up at "swipeUp" then UP is detected
-  if (mState == swipeUp) {
-    Serial.println("Swipe UP detected");
-    reset();
-
-/* ##################################################################################### */
-    // Experiment with this to change the colors. The parameters are R, G, B
-    // values with brightness range from 0 to 255
+  if (tapCount[0] % 3 == 0 && tapCount[0]) {
     glowLED(255, 0, 0);
-/* ##################################################################################### */
-    
-    delay(100);
-    mState = idle;
+    tapCount[0] = 0;
   }
 
-  // Otherwise DOWN is detected.
-  if (mState == swipeDown) {
-    Serial.println("Swipe DOWN detected");
-    reset();
-
-/* ##################################################################################### */
-    // Experiment with this to change the colors. The parameters are R, G, B
-    // values with brightness range from 0 to 255
+  if (tapCount[1] % 3 == 0 && tapCount[1]) {
     glowLED(0, 255, 0);
-/* ##################################################################################### */
+    tapCount[1] = 0;
+  }
 
-    delay(100);
-    mState = idle;
+  if (tapCount[2] % 3 == 0 && tapCount[2]) {
+    glowLED(0, 0, 255);
+    tapCount[2] = 0;
   }
   
   delay(10);
