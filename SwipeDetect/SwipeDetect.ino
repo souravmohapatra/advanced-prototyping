@@ -1,67 +1,139 @@
-// Swipe detect
-// Detect (sequential) touches of multiple touch sensors.
-//
-// Adrie Kooijman, Aug 2021
-// Adrie Kooijman, Oct 2021
-// Sourav Mohapatra, Oct 2021
+/*
+ * Swipe Sensor - Detect swipes in both direction.
+ * Change the threshold to work in different scenarios.
+ * Also might need to change the filter params according
+ * to the surface where the soft sensor is kept.
+ * 
+ * glowLED(R, G, B) - Call this function with RGB values to
+ * glow the NeoPixel (RGB values between 0 - 255)
+ * 
+ * Note: Code marked inside "###" are meant to be experimented.
+ * Feel free to change and explore.
+ * 
+ * ~ Sourav Mohapatra, 2022
+ */
 
 #include <Adafruit_NeoPixel.h>
 #define NEOPIN 6 // Neopixel data pin
 #define NEONUM 1 // How many pixels we have?
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NEONUM, NEOPIN, NEO_GRB);
-
-const int led = 25; // for Raspberry pi pico.
-
-// The state machine states. No need to change these
 enum states {idle, touchedA0, touchedA1, touchedA2, swipeUp, swipeDown} mState;
 enum direct {undefined, up, down} upDown;
-
-// Run once, no need to change
-void setup() {
-  Serial.begin(115200);
-  pinMode(2, INPUT_PULLUP);
-  pinMode(3, INPUT_PULLUP);
-  pinMode(led, OUTPUT);
-  pixels.begin();
-  pixels.show();
-  pixels.setBrightness(255);
-  Serial.println();
-}
-
+const int led = 25; // for Raspberry pi pico.
 // Filter params, no need to change
-float longF = 0.001;
-float shortF = 0.04;
+float longF = 0.1;
+float shortF = 0.004;
 float longAvg[3], shortAvg[3];
 int pin[] = {A0, A1, A2};
 int result[] = {0,0,0};
 int boolResult[] = {0,0,0};
 int val;
+long int count = 0;
+short unsigned int upCount = 0, downCount = 0;
+short unsigned int upTime = 0, downTime = 0;
+bool ledGlowed = false;
 
-// This is the trigger. Change it according to your need.
-float trigger = 85.0;
+/* ##################################################################################### */
+// This is the trigger. Change it according to your environment
+float trigger = 17.0;
+
+// Start with a value of true to just plot values. Then change to
+// false to start the swipe detection
+const bool isTestCode = false;
+/* ##################################################################################### */
+
+// Run once, no need to change
+void setup() {
+  Serial.begin(115200);
+  pinMode(led, OUTPUT);
+  pixels.begin();
+  pixels.show();
+  pixels.setBrightness(255);
+  Serial.println();
+
+  unsigned long _tmp = millis();
+  while (millis() - _tmp < 2000) {
+    touchDetect(0);
+    touchDetect(1);
+    touchDetect(2);
+  }
+}
 
 void loop() {
+  ledGlowed = false;
   touchDetect(0);
   touchDetect(1);
   touchDetect(2);
 
-//  int _tmp = 0;
-//  Serial.println(_tmp);
-  Serial.print(boolResult[0]); Serial.print(" ");
-  Serial.print(boolResult[1]); Serial.print(" ");
-  Serial.print(boolResult[2]); Serial.println(" ");
+  if (isTestCode) {
+    Serial.print(result[0]); Serial.print(" ");
+    Serial.print(result[1]); Serial.print(" ");
+    Serial.print(result[2]); Serial.println(" ");
+  } else {
+    Serial.print(boolResult[0]); Serial.print(" ");
+    Serial.print(boolResult[1]); Serial.print(" ");
+    Serial.print(boolResult[2]); Serial.println(" ");
+  }
 
-  // Call the state machine. This function is present in the separate file.
-  // If you want to change, open that file and do any changes. By default,
-  // this file would be open in a tab in your Arduino IDE
-  stateMachine();
+  if (!isTestCode)
+    stateMachine();
+
+  if (mState == swipeUp) {
+    upCount++;
+    upTime = millis();
+  } else if (mState == swipeDown) {
+    downCount++;
+    downTime = millis();
+  }
+
+/* ##################################################################################### */
+  if (upCount == 1 && downCount == 1) {
+    glowLED(255, 92, 245);
+    upCount = 0;
+    downCount = 0;
+  }
+  
+  if (upCount == 3) {
+    glowLED(0, 255, 255);
+    upCount = 0;
+  }
+
+  if (downCount == 3) {
+    glowLED(255, 255, 0);
+    downCount = 0;
+  }
+/* ##################################################################################### */
+
+  if (millis() - upTime > 10000)
+    upCount = 0;
+
+  if (millis() - downTime > 10000)
+    downCount = 0;
+
+  if (ledGlowed) {
+    reset();
+    mState = idle;
+    unsigned long _tmp = millis();
+    while (millis() - _tmp < 200) {
+      touchDetect(0);
+      touchDetect(1);
+      touchDetect(2);
+    }
+    return;
+  }
 
   // If the state ends up at "swipeUp" then UP is detected
   if (mState == swipeUp) {
     Serial.println("Swipe UP detected");
     reset();
+
+/* ##################################################################################### */
+    // Experiment with this to change the colors. The parameters are R, G, B
+    // values with brightness range from 0 to 255
     glowLED(255, 0, 0);
-    delay(500);
+/* ##################################################################################### */
+    
+    delay(100);
     mState = idle;
   }
 
@@ -70,9 +142,13 @@ void loop() {
     Serial.println("Swipe DOWN detected");
     reset();
 
-    // Experiment with this to change the colors. The parameters
+/* ##################################################################################### */
+    // Experiment with this to change the colors. The parameters are R, G, B
+    // values with brightness range from 0 to 255
     glowLED(0, 255, 0);
-    delay(500);
+/* ##################################################################################### */
+
+    delay(100);
     mState = idle;
   }
   
@@ -81,25 +157,31 @@ void loop() {
 
 void glowLED(float R, float G, float B)
 {
-  for (int j = 0; j < 3; j++) {
+  ledGlowed = true;
+  for (int j = 0; j < 2; j++) {
     for (float i = 0.0; i < 255.0; i++) {
       pixels.setPixelColor(0, (int)(R * (i / 255)), (int)(G * (i / 255)), (int)(B * (i / 255)));
-//      pixels.setPixelColor(0, i, 0, 0);
       pixels.show();
       delay(2);
     }
-    delay(50);
+    delay(100);
     for (float i = 255.0; i > 0.0; i--) {
       pixels.setPixelColor(0, (int)(R * (i / 255)), (int)(G * (i / 255)), (int)(B * (i / 255)));
-//      pixels.setPixelColor(0, i, 0, 0);
       pixels.show();
       delay(2);
     }
-    delay(50);
+    delay(100);
   }
 
   pixels.setPixelColor(0, 0, 0, 0);
   pixels.show();
+
+  unsigned long _tmp = millis();
+  while (millis() - _tmp < 200) {
+    touchDetect(0);
+    touchDetect(1);
+    touchDetect(2);
+  }
 }
 
 void reset()

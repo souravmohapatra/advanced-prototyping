@@ -1,9 +1,12 @@
-// The function that actually detects the touch of a sensor.
-// As of now, no need to change the logic.
+/*
+ * Actual sensor detection logic. There should be no reason
+ * to change the code here.
+ * 
+ * ~ Sourav Mohapatra, 2022
+ */
 
 bool touchDetect(int num) {
-  // Debug?
-  bool DBG = true;
+  count++;
   boolResult[num] = 0;
   
   // Some special magic to make the input more stable
@@ -17,22 +20,34 @@ bool touchDetect(int num) {
     shortAvg[num] = (1.0 - shortF) * shortAvg[num] + shortF * val;
 
   float diff = abs(longAvg[num] - shortAvg[num]);
-  if (diff < 80.0)
-    diff = 50.0;
-
   result[num] = diff;
 
   // If greater than a trigger, turn on the LED and return true
   // else false
   if (diff > trigger) {
-    digitalWrite(led, HIGH);
+    if (isTestCode)
+      turnOnLED(num);
     boolResult[num] = 1;
     return true;
   } else {
-    digitalWrite(led, LOW);
     boolResult[num] = 0;
     return false;
   }
+}
+
+void turnOnLED(int num)
+{
+  switch (num) {
+    case 0:
+      pixels.setPixelColor(0, 255, 0, 0);
+      break;
+    case 1:
+      pixels.setPixelColor(0, 0, 255, 0);
+      break;
+    case 2:
+      pixels.setPixelColor(0, 0, 0, 255);
+      break;
+  }
   
-  return false;
+  pixels.show();
 }
