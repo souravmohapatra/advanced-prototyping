@@ -25,29 +25,10 @@ bool touchDetect(int num) {
   // If greater than a trigger, turn on the LED and return true
   // else false
   if (diff > trigger) {
-    if (isTestCode)
-      turnOnLED(num);
     boolResult[num] = 1;
     return true;
   } else {
     boolResult[num] = 0;
     return false;
   }
-}
-
-void turnOnLED(int num)
-{
-  switch (num) {
-    case 0:
-      pixels.setPixelColor(0, 255, 0, 0);
-      break;
-    case 1:
-      pixels.setPixelColor(0, 0, 255, 0);
-      break;
-    case 2:
-      pixels.setPixelColor(0, 0, 0, 255);
-      break;
-  }
-  
-  pixels.show();
 }

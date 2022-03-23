@@ -16,7 +16,9 @@ bool touchDetect(int num) {
 
   // Filter the values
   longAvg[num]  = (1.0 - longF) * longAvg[num] +  longF * val;
-  if (val > longAvg[num]) // only track higher than avarage
+  // Only track higher than avarage. Kind of like
+  // bandpass but not really.
+  if (val > longAvg[num])
     shortAvg[num] = (1.0 - shortF) * shortAvg[num] + shortF * val;
 
   float diff = abs(longAvg[num] - shortAvg[num]);

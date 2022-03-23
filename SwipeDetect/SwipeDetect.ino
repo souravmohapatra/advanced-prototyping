@@ -44,18 +44,18 @@ int result[] = {0,0,0};
 int boolResult[] = {0,0,0};
 long int count = 0;
 short unsigned int upCount = 0, downCount = 0;
-short unsigned int upTime = 0, downTime = 0;
-bool ledGlowed = false;
+long int upTime = 0, downTime = 0;
+bool ledGlowed = true;
 
 // This is the trigger. Change it according to your environment
-float trigger = 80.0;
+float trigger = 18.0;
 
-float longF = 0.001; // INCREASE or DECREASE when needed
-float shortF = 0.04; // INCREASE or DECREASE when needed
+float longF = 0.2; // INCREASE or DECREASE when needed
+float shortF = 0.1; // INCREASE or DECREASE when needed
 
 // Start with a value of true to just plot values. Then change to
 // false to start the swipe detection
-const bool isTestCode = false;
+const bool isTestCode = true;
 
 void setup()
 {
@@ -78,6 +78,11 @@ void loop()
   Serial.print(result[1]); Serial.print(" ");
   Serial.print(result[2]); Serial.println(" ");
 
+//  Serial.print(millis() - upTime); Serial.print("--");
+//  Serial.print(millis() - downTime); Serial.print("--");
+//  Serial.print(upCount); Serial.print(" ");
+//  Serial.print(downCount); Serial.println(" ");
+
   if (!isTestCode)
     stateMachine();
 
@@ -97,21 +102,25 @@ void loop()
     downCount = 0;
   }
   
-  if (upCount == 3) {
+  if (upCount >= 3) {
     glowLED(0, 255, 255);
     upCount = 0;
+    downCount = 0;
   }
 
-  if (downCount == 3) {
+  if (downCount >= 3) {
     glowLED(255, 255, 0);
     downCount = 0;
+    upCount = 0;
   }
 
-  if (millis() - upTime > 10000)
+  if (upCount && (millis() - upTime) > 10000) {
     upCount = 0;
+  }
 
-  if (millis() - downTime > 10000)
+  if (downCount && (millis() - downTime) > 10000) {
     downCount = 0;
+  }
 
   if (ledGlowed) {
     reset();

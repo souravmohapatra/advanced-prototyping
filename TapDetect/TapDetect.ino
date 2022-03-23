@@ -26,39 +26,21 @@ enum states {
   touchedA0, 
   touchedA1, 
   touchedA2, 
-  tappedLeft, 
-  tappedCenter,
-  tappedRight
 } mState;
-
-/* For the state machine */
-enum tap_direct {
-  undefined, 
-  left, 
-  center,
-  right
-} tap;
 
 
 float longAvg[3], shortAvg[3];
-int pin[] = {A2, A1, A0};
+int pin[] = {A0, A1, A2};
 int result[] = {0,0,0};
 int boolResult[] = {0,0,0};
 int tapCount[] = {0, 0, 0};
 long int count = 0;
-short unsigned int upCount = 0, downCount = 0;
-short unsigned int upTime = 0, downTime = 0;
-bool ledGlowed = false;
 
 // This is the trigger. Change it according to your environment
-float trigger = 100.0;
+float trigger = 18.0;
 
-float longF = 0.001; // INCREASE or DECREASE when needed
+float longF = 0.2; // INCREASE or DECREASE when needed
 float shortF = 0.1; // INCREASE or DECREASE when needed
-
-// Start with a value of true to just plot values. Then change to
-// false to start the swipe detection
-const bool isTestCode = false;
 
 void setup()
 {
@@ -72,7 +54,6 @@ void setup()
 
 void loop()
 {
-  ledGlowed = false;
   touchDetect(0);
   touchDetect(1);
   touchDetect(2);
@@ -85,8 +66,7 @@ void loop()
   Serial.print(" "); Serial.print(tapCount[1]);
   Serial.print(" "); Serial.println(tapCount[2]);
 
-  if (!isTestCode)
-    stateMachine();
+  stateMachine();
 
   if (tapCount[0] % 3 == 0 && tapCount[0]) {
     glowLED(255, 0, 0);
@@ -108,7 +88,6 @@ void loop()
 
 void glowLED(float R, float G, float B)
 {
-  ledGlowed = true;
   for (int j = 0; j < 2; j++) {
     for (float i = 0.0; i < 255.0; i++) {
       pixels.setPixelColor(0, (int)(R * (i / 255)), (int)(G * (i / 255)), (int)(B * (i / 255)));
@@ -127,22 +106,6 @@ void glowLED(float R, float G, float B)
   pixels.setPixelColor(0, 0, 0, 0);
   pixels.show();
   _stall();
-}
-
-void reset()
-{
-    boolResult[0] = 0;
-    boolResult[1] = 0;
-    boolResult[2] = 0;
-    longAvg[0] = 0;
-    longAvg[1] = 0;
-    longAvg[2] = 0;
-    shortAvg[0] = 0;
-    shortAvg[1] = 0;
-    shortAvg[2] = 0;
-    pinMode(A0, OUTPUT);
-    pinMode(A1, OUTPUT);
-    pinMode(A2, OUTPUT);
 }
 
 static inline void _stall()
